@@ -1,0 +1,26 @@
+name = "cloudflare-worker-project"
+main = "./src/index.ts"
+compatibility_date = "2023-10-01"
+account_id = "e9c10dfbdee5fb11bf0e2e150d37b8df"
+workers_dev = true
+
+[durable_objects]
+bindings = [
+  { name = "CHAT_ROOM", class_name = "ChatRoom" },
+  { name = "STREAM_RELAY", class_name = "StreamRelay" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ChatRoom"]
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["StreamRelay"]
+
+[vars]
+SFU_SERVER_URL = "wss://video.bandia.vn"
+# SFU_SERVER_URL = "wss://stream.bandia.vn"
+
+[build]
+command = "npm install && npm run build"

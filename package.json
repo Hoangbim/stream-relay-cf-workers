@@ -1,0 +1,20 @@
+{
+  "name": "cloudflare-worker-project",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "typescript": "^4.0.0",
+    "wrangler": "^4.12.0",
+    "@cloudflare/workers-types": "^4.20250417.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}

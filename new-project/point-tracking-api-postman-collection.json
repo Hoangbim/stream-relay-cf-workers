@@ -1,0 +1,333 @@
+{
+  "info": {
+    "name": "Point Tracking System API",
+    "description": "Collection for testing the Point Tracking System API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Documentation",
+      "item": [
+        {
+          "name": "Get API Documentation",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/docs",
+              "host": ["{{baseUrl}}"],
+              "path": ["docs"]
+            },
+            "description": "View the API documentation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Register a new user"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.token) {",
+                  "    pm.environment.set(\"authToken\", jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Login and get JWT token. Automatically saves the token to environment variable."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tables",
+      "item": [
+        {
+          "name": "Create Table",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/tables",
+              "host": ["{{baseUrl}}"],
+              "path": ["tables"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableName\": \"Game Night Table\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Create a new game table (requires authentication)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.id) {",
+                  "    pm.environment.set(\"tableId\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Tables",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tables",
+              "host": ["{{baseUrl}}"],
+              "path": ["tables"]
+            },
+            "description": "Get a list of all tables"
+          }
+        },
+        {
+          "name": "Get Table by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tables/{{tableId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tables", "{{tableId}}"]
+            },
+            "description": "Get details of a specific table"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "Add Player to Table",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/tables/{{tableId}}/players/{{username}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tables", "{{tableId}}", "players", "{{username}}"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Add a player to a table"
+          }
+        },
+        {
+          "name": "Get Player Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tables/{{tableId}}/players/{{username}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["tables", "{{tableId}}", "players", "{{username}}"]
+            },
+            "description": "Get player information within a table"
+          }
+        },
+        {
+          "name": "Transfer Points",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/tables/{{tableId}}/players/{{fromUsername}}/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["tables", "{{tableId}}", "players", "{{fromUsername}}", "transfer"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toPlayerId\": \"{{toUsername}}\",\n  \"amount\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Transfer points from one player to another"
+          }
+        },
+        {
+          "name": "Get Transfer History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tables/{{tableId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["tables", "{{tableId}}", "history"]
+            },
+            "description": "Get transfer history for a table"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "Create Item",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["items"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gold Trophy\",\n  \"description\": \"A trophy made of gold\",\n  \"value\": 500\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Create a new inventory item (requires authentication)"
+          }
+        },
+        {
+          "name": "Get All Items",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["items"]
+            },
+            "description": "Get a list of all inventory items"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8787"
+    },
+    {
+      "key": "tableId",
+      "value": "your-table-id-here"
+    },
+    {
+      "key": "username",
+      "value": "testuser"
+    },
+    {
+      "key": "fromUsername",
+      "value": "testuser"
+    },
+    {
+      "key": "toUsername",
+      "value": "anotheruser"
+    }
+  ]
+}
