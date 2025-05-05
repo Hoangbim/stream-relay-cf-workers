@@ -1,6 +1,6 @@
 export class StreamRelay {
     constructor(state, env) {
-        var _a;
+        var _a, _b;
         this.sfuConnection = null;
         this.clients = new Map();
         this.codecDescription = null;
@@ -13,11 +13,17 @@ export class StreamRelay {
         // Extract the stream ID from the state ID
         this.streamId = ((_a = state.id.name) === null || _a === void 0 ? void 0 : _a.split(":")[1]) || "test_stream";
         // Use WebSocket protocol instead of HTTP
-        this.sfuUrl = env.SFU_SERVER_URL || "ws://127.0.0.1:5500";
+        // in production, this should be set to the actual SFU server URL in the environment
+        this.sfuUrl = (_b = env.SFU_SERVER_URL) !== null && _b !== void 0 ? _b : null;
         this.currentWsUrl = null;
     }
     async fetch(request) {
+        var _a;
         const url = new URL(request.url);
+        const forwardedHost = (_a = request.headers.get("Origin")) === null || _a === void 0 ? void 0 : _a.replace("http", "ws");
+        if (!this.sfuUrl && forwardedHost) {
+            this.sfuUrl = forwardedHost;
+        }
         // Handle WebSocket upgrade requests
         if (request.headers.get("Upgrade") === "websocket") {
             // Create WebSocketPair for the client
@@ -34,7 +40,7 @@ export class StreamRelay {
             server.addEventListener("close", () => this.handleClientDisconnect(clientId));
             server.addEventListener("error", () => this.handleClientDisconnect(clientId));
             // Send initial connection status
-            this.sendStatusToClient(clientId, `Connected to stream relay, state: ${this.state.id}. Waiting for media...`);
+            this.sendStatusToClient(clientId, `Connected to stream relay, state: ${this.state.id},  Waiting for media...`);
             // Connect to SFU if this is our first client
             if (this.clients.size === 1) {
                 await this.connectToSFU();
@@ -74,15 +80,13 @@ export class StreamRelay {
             // Create WebSocket URL with the correct protocol and path
             const wsUrl = `${this.sfuUrl}/consume/${this.streamId}`;
             this.currentWsUrl = wsUrl;
-            console.log(`Connecting to SFU at ${wsUrl}`);
             // Create a direct WebSocket connection to SFU
             this.sfuConnection = new WebSocket(wsUrl);
             this.sfuConnection.binaryType = "arraybuffer";
             // Set up event handlers for the SFU WebSocket connection
             this.sfuConnection.addEventListener("open", () => {
-                console.log(`Successfully connected to SFU for stream ${this.streamId}`);
                 this.isConnectedToSFU = true;
-                this.broadcastStatusToClients("Connected to SFU server");
+                this.broadcastStatusToClients(`Connected to SFU server, host: ${this.sfuUrl}`);
             });
             // Handle messages from the SFU
             this.sfuConnection.addEventListener("message", (event) => {
@@ -156,7 +160,6 @@ export class StreamRelay {
                 client.send(data);
             }
             catch (error) {
-                console.error(`Error sending data to client ${clientId}:`, error);
                 this.handleClientDisconnect(clientId);
             }
         }

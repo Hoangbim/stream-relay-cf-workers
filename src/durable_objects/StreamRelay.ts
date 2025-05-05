@@ -1,7 +1,4 @@
-/**
- * StreamRelay - A Durable Object that acts as a middleman between the SFU server and edge clients
- * It connects to the central SFU as a consumer and fans out the stream to multiple clients
- */
+
 import {
   CloudflareWebSocket,
   DurableObjectState,
@@ -27,12 +24,21 @@ export class StreamRelay {
     // Extract the stream ID from the state ID
     this.streamId = state.id.name?.split(":")[1] || "test_stream";
     // Use WebSocket protocol instead of HTTP
-    this.sfuUrl = env.SFU_SERVER_URL || "ws://127.0.0.1:5500";
+    // in production, this should be set to the actual SFU server URL in the environment
+    this.sfuUrl = env.SFU_SERVER_URL ?? null;
     this.currentWsUrl = null;
   }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+
+    const forwardedHost = request.headers.get("Origin")?.replace("http", "ws");
+
+    if (!this.sfuUrl && forwardedHost) {
+      this.sfuUrl = forwardedHost;
+    }
+
+     
 
     // Handle WebSocket upgrade requests
     if (request.headers.get("Upgrade") === "websocket") {
@@ -61,7 +67,7 @@ export class StreamRelay {
       // Send initial connection status
       this.sendStatusToClient(
         clientId,
-        `Connected to stream relay, state: ${this.state.id}. Waiting for media...`
+        `Connected to stream relay, state: ${this.state.id},  Waiting for media...`
       );
 
       // Connect to SFU if this is our first client
@@ -110,7 +116,6 @@ export class StreamRelay {
       // Create WebSocket URL with the correct protocol and path
       const wsUrl = `${this.sfuUrl}/consume/${this.streamId}`;
       this.currentWsUrl = wsUrl;
-      console.log(`Connecting to SFU at ${wsUrl}`);
 
       // Create a direct WebSocket connection to SFU
       this.sfuConnection = new WebSocket(
@@ -120,11 +125,8 @@ export class StreamRelay {
 
       // Set up event handlers for the SFU WebSocket connection
       this.sfuConnection.addEventListener("open", () => {
-        console.log(
-          `Successfully connected to SFU for stream ${this.streamId}`
-        );
         this.isConnectedToSFU = true;
-        this.broadcastStatusToClients("Connected to SFU server");
+        this.broadcastStatusToClients(`Connected to SFU server, host: ${this.sfuUrl}`);
       });
 
       // Handle messages from the SFU
@@ -209,7 +211,6 @@ export class StreamRelay {
       try {
         client.send(data);
       } catch (error) {
-        console.error(`Error sending data to client ${clientId}:`, error);
         this.handleClientDisconnect(clientId);
       }
     }

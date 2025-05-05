@@ -38,6 +38,8 @@ const worker = {
 
     // Route requests to the stream relay WebSocket endpoint
     if (url.pathname.startsWith('/stream/')) {
+
+     
       // Get stream ID from the URL
       const streamId = url.pathname.substring('/stream/'.length);
       
@@ -53,6 +55,7 @@ const worker = {
       
       // Forward the request to the Durable Object
       return stub.fetch(request);
+
     }
 
     // List available streams

@@ -19,7 +19,7 @@ tag = "v4"
 new_sqlite_classes = ["StreamRelay"]
 
 [vars]
-SFU_SERVER_URL = "wss://video.bandia.vn"
+# SFU_SERVER_URL = "wss://video.bandia.vn"
 # SFU_SERVER_URL = "wss://stream.bandia.vn"
 
 [build]
