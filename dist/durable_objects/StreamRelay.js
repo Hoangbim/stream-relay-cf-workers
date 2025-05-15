@@ -1,9 +1,12 @@
 export class StreamRelay {
     constructor(state, env) {
-        var _a, _b;
+        var _a, _b, _c;
+        this.streamId = null;
         this.sfuConnection = null;
         this.clients = new Map();
-        this.codecDescription = null;
+        // private codecDescription: ArrayBuffer | null = null;
+        this.audioCodecDescription = null;
+        this.videoCodecDescription = null;
         this.reconnectTimeout = null;
         this.heartbeatInterval = null;
         this.isConnectedToSFU = false;
@@ -11,10 +14,11 @@ export class StreamRelay {
         this.state = state;
         this.env = env;
         // Extract the stream ID from the state ID
-        this.streamId = ((_a = state.id.name) === null || _a === void 0 ? void 0 : _a.split(":")[1]) || "test_stream";
+        // this.streamId = state.id.name?.split(":")[1] || "test_stream";
+        this.streamId = (_b = (_a = state.id.name) === null || _a === void 0 ? void 0 : _a.split(":")[1]) !== null && _b !== void 0 ? _b : null;
         // Use WebSocket protocol instead of HTTP
         // in production, this should be set to the actual SFU server URL in the environment
-        this.sfuUrl = (_b = env.SFU_SERVER_URL) !== null && _b !== void 0 ? _b : null;
+        this.sfuUrl = (_c = env.SFU_SERVER_URL) !== null && _c !== void 0 ? _c : null;
         this.currentWsUrl = null;
     }
     async fetch(request) {
@@ -23,6 +27,10 @@ export class StreamRelay {
         const forwardedHost = (_a = request.headers.get("Origin")) === null || _a === void 0 ? void 0 : _a.replace("http", "ws");
         if (!this.sfuUrl && forwardedHost) {
             this.sfuUrl = forwardedHost;
+        }
+        if (!this.streamId) {
+            const streamId = url.pathname.substring("/stream/".length);
+            this.streamId = streamId;
         }
         // Handle WebSocket upgrade requests
         if (request.headers.get("Upgrade") === "websocket") {
@@ -47,9 +55,12 @@ export class StreamRelay {
                 // Start the heartbeat only when we have the first client
                 this.startHeartbeat();
             }
-            else if (this.isConnectedToSFU && this.codecDescription) {
+            else if (this.isConnectedToSFU &&
+                this.audioCodecDescription &&
+                this.videoCodecDescription) {
                 // If we already have codec info, send it immediately to the new client
-                server.send(this.codecDescription);
+                server.send(this.audioCodecDescription);
+                server.send(this.videoCodecDescription);
             }
             // Return the client end of the WebSocket
             return new Response(null, {
@@ -91,9 +102,18 @@ export class StreamRelay {
             // Handle messages from the SFU
             this.sfuConnection.addEventListener("message", (event) => {
                 // The first message contains codec information
-                if (!this.codecDescription) {
-                    this.codecDescription = event.data;
-                    this.broadcastStatusToClients("Received codec information from SFU");
+                if (!this.audioCodecDescription) {
+                    const data = new Uint8Array(event.data);
+                    if (data[0] === 1) {
+                        this.audioCodecDescription = event.data;
+                    }
+                    this.broadcastStatusToClients("Received audio codec information from SFU");
+                }
+                if (!this.videoCodecDescription) {
+                    const data = new Uint8Array(event.data);
+                    if (data[0] === 0) {
+                        this.videoCodecDescription = event.data;
+                    }
                 }
                 // Fan out to all connected clients
                 this.fanOutToClients(event.data);
