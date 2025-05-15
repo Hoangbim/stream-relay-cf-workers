@@ -56,11 +56,12 @@ export class StreamRelay {
                 this.startHeartbeat();
             }
             else if (this.isConnectedToSFU &&
-                this.audioCodecDescription &&
+                // this.audioCodecDescription &&
                 this.videoCodecDescription) {
                 // If we already have codec info, send it immediately to the new client
-                server.send(this.audioCodecDescription);
+                // server.send(this.audioCodecDescription);
                 server.send(this.videoCodecDescription);
+                this.sendStatusToClient(clientId, `Sent video codec information to new client`);
             }
             // Return the client end of the WebSocket
             return new Response(null, {
@@ -89,7 +90,7 @@ export class StreamRelay {
                 this.reconnectTimeout = null;
             }
             // Create WebSocket URL with the correct protocol and path
-            const wsUrl = `${this.sfuUrl}/consume/${this.streamId}`;
+            const wsUrl = `${this.sfuUrl}/${this.streamId}`;
             this.currentWsUrl = wsUrl;
             // Create a direct WebSocket connection to SFU
             this.sfuConnection = new WebSocket(wsUrl);
@@ -101,19 +102,9 @@ export class StreamRelay {
             });
             // Handle messages from the SFU
             this.sfuConnection.addEventListener("message", (event) => {
-                // The first message contains codec information
-                if (!this.audioCodecDescription) {
-                    const data = new Uint8Array(event.data);
-                    if (data[0] === 1) {
-                        this.audioCodecDescription = event.data;
-                    }
-                    this.broadcastStatusToClients("Received audio codec information from SFU");
-                }
                 if (!this.videoCodecDescription) {
-                    const data = new Uint8Array(event.data);
-                    if (data[0] === 0) {
-                        this.videoCodecDescription = event.data;
-                    }
+                    this.videoCodecDescription = event.data;
+                    this.broadcastStatusToClients("Received video codec information from SFU");
                 }
                 // Fan out to all connected clients
                 this.fanOutToClients(event.data);
