@@ -1,3 +1,7 @@
+function formatLog(message) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${message}`);
+}
 export class StreamRelay {
     constructor(state, env) {
         var _a, _b, _c;
@@ -23,8 +27,16 @@ export class StreamRelay {
     }
     async fetch(request) {
         var _a;
+        console.log("Received request:", request.url);
         const url = new URL(request.url);
-        const forwardedHost = (_a = request.headers.get("Origin")) === null || _a === void 0 ? void 0 : _a.replace("http", "ws");
+        let forwardedHost = null;
+        if (url.searchParams.get("url")) {
+            forwardedHost = url.searchParams.get("url");
+        }
+        else {
+            forwardedHost = (_a = request.headers.get("Origin")) === null || _a === void 0 ? void 0 : _a.replace("http", "ws");
+        }
+        console.log("Forwarded host:", forwardedHost);
         if (!this.sfuUrl && forwardedHost) {
             this.sfuUrl = forwardedHost;
         }
@@ -92,11 +104,13 @@ export class StreamRelay {
             // Create WebSocket URL with the correct protocol and path
             const wsUrl = `${this.sfuUrl}/${this.streamId}`;
             this.currentWsUrl = wsUrl;
+            console.log("Connecting to SFU:", wsUrl);
             // Create a direct WebSocket connection to SFU
             this.sfuConnection = new WebSocket(wsUrl);
             this.sfuConnection.binaryType = "arraybuffer";
             // Set up event handlers for the SFU WebSocket connection
             this.sfuConnection.addEventListener("open", () => {
+                console.log("Connected to SFU:", wsUrl);
                 this.isConnectedToSFU = true;
                 this.broadcastStatusToClients(`Connected to SFU server, host: ${this.sfuUrl}`);
             });
@@ -146,10 +160,12 @@ export class StreamRelay {
         // Remove the client
         this.clients.delete(clientId);
         // If no more clients, disconnect from SFU
+        //todo: check case if clients size === 0 and get a new connection from client -> connectToSFU fail!!!!
         if (this.clients.size === 0) {
             if (this.sfuConnection) {
                 this.sfuConnection.close();
                 this.sfuConnection = null;
+                this.videoCodecDescription = null;
             }
             this.isConnectedToSFU = false;
             // Clear any reconnect timeout

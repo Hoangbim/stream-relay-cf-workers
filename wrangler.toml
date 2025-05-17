@@ -1,8 +1,8 @@
 name = "cloudflare-worker-project"
 main = "./src/index.ts"
 compatibility_date = "2023-10-01"
-# account_id = "e9c10dfbdee5fb11bf0e2e150d37b8df"
-account_id = "07d4a1549593e39505d8b95ed2ad9dcd"
+account_id = "e9c10dfbdee5fb11bf0e2e150d37b8df"
+# account_id = "07d4a1549593e39505d8b95ed2ad9dcd"
 workers_dev = true
 
 [durable_objects]

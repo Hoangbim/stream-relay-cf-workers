@@ -1,5 +1,5 @@
-import { ChatRoom } from './durable_objects/ChatRoom';
-import { StreamRelay } from './durable_objects/StreamRelay';
+import { ChatRoom } from "./durable_objects/ChatRoom";
+import { StreamRelay } from "./durable_objects/StreamRelay";
 
 export { ChatRoom, StreamRelay };
 
@@ -11,10 +11,10 @@ export interface Env {
 }
 
 // Keep track of known room IDs
-const KNOWN_ROOMS = new Set(['default', 'general', 'random', 'support']);
+const KNOWN_ROOMS = new Set(["default", "general", "random", "support"]);
 
 // Keep track of known stream IDs
-const KNOWN_STREAMS = new Set(['test_stream', 'test_stream_audio', 'main']);
+const KNOWN_STREAMS = new Set(["test_stream", "test_stream_audio", "main"]);
 
 // Main worker entry point
 const worker = {
@@ -22,152 +22,162 @@ const worker = {
     const url = new URL(request.url);
 
     // Route requests to the chat room WebSocket endpoint
-    if (url.pathname.startsWith('/chat/')) {
+    if (url.pathname.startsWith("/chat/")) {
       // Get chat room name from the URL
-      const roomId = url.pathname.substring('/chat/'.length) || 'default';
-      
+      const roomId = url.pathname.substring("/chat/".length) || "default";
+
       // Create a Durable Object ID based on the room name
       const id = env.CHAT_ROOM.idFromName(roomId);
-      
+
       // Get stub for the Durable Object
       const stub = env.CHAT_ROOM.get(id);
-      
+
       // Forward the request to the Durable Object
       return stub.fetch(request);
     }
 
     // Route requests to the stream relay WebSocket endpoint
-    if (url.pathname.startsWith('/stream/')) {
-
-     
+    if (url.pathname.startsWith("/stream/")) {
       // Get stream ID from the URL
-      const streamId = url.pathname.substring('/stream/'.length);
-      
+      const streamId = url.pathname.substring("/stream/".length);
+
       if (!streamId) {
         return new Response("Stream ID is required", { status: 400 });
       }
-      
+
       // Create a Durable Object ID based on the stream ID
       const id = env.STREAM_RELAY.idFromName(`stream:${streamId}`);
-      
+
       // Get stub for the Durable Object
       const stub = env.STREAM_RELAY.get(id);
-      
+      console.log("DO stub", stub);
+
       // Forward the request to the Durable Object
       return stub.fetch(request);
-
     }
 
     // List available streams
-    if (url.pathname === '/api/streams' && request.method === 'GET') {
+    if (url.pathname === "/api/streams" && request.method === "GET") {
       return new Response(JSON.stringify([...KNOWN_STREAMS]), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" },
       });
     }
 
     // API endpoint to create a new stream
-    if (url.pathname === '/api/streams' && request.method === 'POST') {
+    if (url.pathname === "/api/streams" && request.method === "POST") {
       try {
         const { streamId } = await request.json();
-        
+
         // Validate stream ID
-        if (!streamId || typeof streamId !== 'string' || streamId.trim() === '') {
-          return new Response(JSON.stringify({ error: 'Invalid stream ID' }), {
+        if (
+          !streamId ||
+          typeof streamId !== "string" ||
+          streamId.trim() === ""
+        ) {
+          return new Response(JSON.stringify({ error: "Invalid stream ID" }), {
             status: 400,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { "Content-Type": "application/json" },
           });
         }
-        
-        const sanitizedStreamId = streamId.trim().replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
-        
+
+        const sanitizedStreamId = streamId
+          .trim()
+          .replace(/[^a-zA-Z0-9_-]/g, "")
+          .toLowerCase();
+
         // Add to known streams
         KNOWN_STREAMS.add(sanitizedStreamId);
-        
+
         return new Response(JSON.stringify({ streamId: sanitizedStreamId }), {
-          headers: { 'Content-Type': 'application/json' }
+          headers: { "Content-Type": "application/json" },
         });
       } catch (error) {
-        return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+        return new Response(JSON.stringify({ error: "Invalid request body" }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { "Content-Type": "application/json" },
         });
       }
     }
 
     // API endpoint to list active rooms
-    if (url.pathname === '/api/rooms' && request.method === 'GET') {
+    if (url.pathname === "/api/rooms" && request.method === "GET") {
       // For a real app, we'd store rooms in Durable Objects or KV
       // For this demo, we're using a predefined list
       return new Response(JSON.stringify([...KNOWN_ROOMS]), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" },
       });
     }
-    
+
     // API endpoint to create a new room
-    if (url.pathname === '/api/rooms' && request.method === 'POST') {
+    if (url.pathname === "/api/rooms" && request.method === "POST") {
       try {
         const { roomId } = await request.json();
-        
+
         // Validate room ID
-        if (!roomId || typeof roomId !== 'string' || roomId.trim() === '') {
-          return new Response(JSON.stringify({ error: 'Invalid room ID' }), {
+        if (!roomId || typeof roomId !== "string" || roomId.trim() === "") {
+          return new Response(JSON.stringify({ error: "Invalid room ID" }), {
             status: 400,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { "Content-Type": "application/json" },
           });
         }
-        
-        const sanitizedRoomId = roomId.trim().replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
-        
+
+        const sanitizedRoomId = roomId
+          .trim()
+          .replace(/[^a-zA-Z0-9_-]/g, "")
+          .toLowerCase();
+
         // Add to known rooms (in a real app, we'd store this in KV or DO)
         KNOWN_ROOMS.add(sanitizedRoomId);
-        
+
         return new Response(JSON.stringify({ roomId: sanitizedRoomId }), {
-          headers: { 'Content-Type': 'application/json' }
+          headers: { "Content-Type": "application/json" },
         });
       } catch (error) {
-        return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+        return new Response(JSON.stringify({ error: "Invalid request body" }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { "Content-Type": "application/json" },
         });
       }
     }
-    
+
     // Route to a specific room's UI
-    if (url.pathname.startsWith('/room/')) {
-      const roomId = url.pathname.substring('/room/'.length) || 'default';
-      
+    if (url.pathname.startsWith("/room/")) {
+      const roomId = url.pathname.substring("/room/".length) || "default";
+
       // Render the chat room UI with the room ID
       return this.renderChatUI(roomId);
     }
-    
+
     // Route to a specific stream's UI
-    if (url.pathname.startsWith('/view/')) {
-      const streamId = url.pathname.substring('/view/'.length);
-      
+    if (url.pathname.startsWith("/view/")) {
+      const streamId = url.pathname.substring("/view/".length);
+
       if (!streamId) {
         return new Response("Stream ID is required", { status: 400 });
       }
-      
+
       // Render the stream viewer UI with the stream ID
       return this.renderStreamUI(streamId);
     }
 
     // Handle different request methods for non-chat endpoints
-    if (request.method === 'GET') {
+    if (request.method === "GET") {
       // Serve home page listing all chat rooms and streams
-      if (url.pathname === '/' || url.pathname === '') {
+      if (url.pathname === "/" || url.pathname === "") {
         return this.renderHomePage();
       }
-      
-      return new Response('Not Found', { status: 404 });
-    } else if (request.method === 'POST') {
+
+      return new Response("Not Found", { status: 404 });
+    } else if (request.method === "POST") {
       const requestBody = await request.json();
-      return new Response(JSON.stringify({ received: requestBody }), { status: 200 });
+      return new Response(JSON.stringify({ received: requestBody }), {
+        status: 200,
+      });
     } else {
-      return new Response('Method Not Allowed', { status: 405 });
+      return new Response("Method Not Allowed", { status: 405 });
     }
   },
-  
+
   // Render the home page with links to rooms and streams
   renderHomePage() {
     const html = `
@@ -446,12 +456,12 @@ const worker = {
     </body>
     </html>
     `;
-    
-    return new Response(html, { 
-      headers: { 'Content-Type': 'text/html' } 
+
+    return new Response(html, {
+      headers: { "Content-Type": "text/html" },
     });
   },
-  
+
   // Render the stream viewer UI
   renderStreamUI(streamId: string) {
     const html = `
@@ -748,12 +758,12 @@ const worker = {
     </body>
     </html>
     `;
-    
+
     return new Response(html, {
-      headers: { 'Content-Type': 'text/html' }
+      headers: { "Content-Type": "text/html" },
     });
   },
-  
+
   // Render the chat UI for a specific room
   renderChatUI(roomId: string) {
     const html = `
@@ -1025,11 +1035,11 @@ const worker = {
     </body>
     </html>
     `;
-    
-    return new Response(html, { 
-      headers: { 'Content-Type': 'text/html' } 
+
+    return new Response(html, {
+      headers: { "Content-Type": "text/html" },
     });
-  }
+  },
 };
 
 export default worker;
